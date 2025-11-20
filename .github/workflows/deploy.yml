@@ -1,4 +1,4 @@
-name: Deploy React to S3 (dev only)
+name: Deploy React (Vite) to S3 (dev only)
 
 on:
   push:
@@ -30,15 +30,15 @@ jobs:
       # 5. Load DEV Secrets
       - name: Load DEV environment secrets
         run: |
-          echo "API_URL=${{ secrets.DEV_REACT_APP_API_URL }}" >> $GITHUB_ENV
+          echo "VITE_API_URL=${{ secrets.DEV_REACT_APP_API_URL }}" >> $GITHUB_ENV
           echo "BUCKET_NAME=${{ secrets.DEV_BUCKET_NAME }}" >> $GITHUB_ENV
           echo "CF_ID=${{ secrets.DEV_CF_DISTRIBUTION_ID }}" >> $GITHUB_ENV
 
-      # 6. Build React App
-      - name: Build React App
+      # 6. Build Vite App
+      - name: Build Vite App
         run: npm run build
         env:
-          REACT_APP_API_URL: ${{ env.API_URL }}
+          VITE_API_URL: ${{ env.VITE_API_URL }}
 
       # 7. Configure AWS credentials
       - name: Configure AWS credentials
@@ -52,7 +52,7 @@ jobs:
       - name: Upload to S3
         run: |
           echo "Uploading to bucket: $BUCKET_NAME"
-          aws s3 sync build/ s3://$BUCKET_NAME --delete --acl public-read
+          aws s3 sync dist/ s3://$BUCKET_NAME --delete --acl public-read
 
       # 9. CloudFront Cache Invalidation (optional)
       - name: CloudFront Cache Invalidation
