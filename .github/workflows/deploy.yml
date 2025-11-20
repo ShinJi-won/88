@@ -1,0 +1,67 @@
+name: Deploy React to S3 (dev/prod)
+
+on:
+  push:
+    branches: ["dev", "main"]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout
+      - name: Checkout
+        uses: actions/checkout@v3
+
+      # 2. Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: "18"
+
+      - name: Install dependencies
+        run: npm ci
+
+      # 3. 환경별 스위칭 (dev → DEV / main → PROD)
+      - name: Set environment variables based on branch
+        id: env
+        run: |
+          if [[ "${GITHUB_REF##*/}" == "dev" ]]; then
+            echo "ENV=DEV" >> $GITHUB_ENV
+          else
+            echo "ENV=PROD" >> $GITHUB_ENV
+          fi
+
+      # 4. 동적 Secret 매핑
+      - name: Load environment secrets
+        id: secrets
+        run: |
+          echo "API_URL=${{ secrets[env.ENV + '_REACT_APP_API_URL'] }}" >> $GITHUB_ENV
+          echo "BUCKET_NAME=${{ secrets[env.ENV + '_BUCKET_NAME'] }}" >> $GITHUB_ENV
+          echo "CF_ID=${{ secrets[env.ENV + '_CF_DISTRIBUTION_ID'] }}" >> $GITHUB_ENV
+
+      # 5. Build
+      - name: Build React App
+        run: npm run build
+        env:
+          REACT_APP_API_URL: ${{ env.API_URL }}
+
+      # 6. AWS CREDENTIALS 설정
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ap-northeast-2
+
+      # 7. S3 업로드
+      - name: Upload to S3
+        run: |
+          echo "Uploading to bucket: $BUCKET_NAME"
+          aws s3 sync build/ s3://$BUCKET_NAME --delete --acl public-read
+
+      # 8. CloudFront 캐시 무효화
+      - name: CloudFront Cache Invalidation
+        run: |
+          echo "Invalidating CF Distribution: $CF_ID"
+          aws cloudfront create-invalidation --distribution-id $CF_ID --paths "/*"
