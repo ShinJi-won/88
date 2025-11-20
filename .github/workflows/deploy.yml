@@ -1,8 +1,8 @@
-name: Deploy React to S3 (dev/prod)
+name: Deploy React to S3 (dev only)
 
 on:
   push:
-    branches: ["dev", "main"]
+    branches: ["dev", "main"]  # main 브랜치도 dev 환경으로 배포 가능
 
 jobs:
   deploy:
@@ -23,27 +23,16 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      # 4. Set ENV based on branch
-      - name: Set environment variables based on branch
-        run: |
-          if [[ "${GITHUB_REF##*/}" == "dev" ]]; then
-            echo "ENV=DEV" >> $GITHUB_ENV
-          else
-            echo "ENV=PROD" >> $GITHUB_ENV
-          fi
+      # 4. ENV 강제 DEV
+      - name: Set environment to DEV
+        run: echo "ENV=DEV" >> $GITHUB_ENV
 
-      # 5. Load secrets based on ENV
-      - name: Load environment secrets
+      # 5. Load DEV Secrets
+      - name: Load DEV environment secrets
         run: |
-          if [[ "$ENV" == "DEV" ]]; then
-            echo "API_URL=${{ secrets.DEV_REACT_APP_API_URL }}" >> $GITHUB_ENV
-            echo "BUCKET_NAME=${{ secrets.DEV_BUCKET_NAME }}" >> $GITHUB_ENV
-            echo "CF_ID=${{ secrets.DEV_CF_DISTRIBUTION_ID }}" >> $GITHUB_ENV
-          else
-            echo "API_URL=${{ secrets.PROD_REACT_APP_API_URL }}" >> $GITHUB_ENV
-            echo "BUCKET_NAME=${{ secrets.PROD_BUCKET_NAME }}" >> $GITHUB_ENV
-            echo "CF_ID=${{ secrets.PROD_CF_DISTRIBUTION_ID }}" >> $GITHUB_ENV
-          fi
+          echo "API_URL=${{ secrets.DEV_REACT_APP_API_URL }}" >> $GITHUB_ENV
+          echo "BUCKET_NAME=${{ secrets.DEV_BUCKET_NAME }}" >> $GITHUB_ENV
+          echo "CF_ID=${{ secrets.DEV_CF_DISTRIBUTION_ID }}" >> $GITHUB_ENV
 
       # 6. Build React App
       - name: Build React App
@@ -65,7 +54,7 @@ jobs:
           echo "Uploading to bucket: $BUCKET_NAME"
           aws s3 sync build/ s3://$BUCKET_NAME --delete --acl public-read
 
-      # 9. CloudFront Cache Invalidation
+      # 9. CloudFront Cache Invalidation (optional)
       - name: CloudFront Cache Invalidation
         run: |
           echo "Invalidating CF Distribution: $CF_ID"
