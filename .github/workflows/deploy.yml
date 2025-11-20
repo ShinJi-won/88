@@ -54,11 +54,13 @@ jobs:
           echo "Uploading to bucket: $BUCKET_NAME"
           aws s3 sync dist/ s3://$BUCKET_NAME --delete
 
+      # 9. Debug CF_ID (확인용)
+      - name: Debug CF_ID
+        run: echo "CF_ID=$CF_ID"
 
-      # # 9. CloudFront Cache Invalidation (optional)
-      # - name: CloudFront Cache Invalidation
-      #   run: |
-      #     echo "Invalidating CF Distribution: $CF_ID"
-      #     aws cloudfront create-invalidation --distribution-id $CF_ID --paths "/*"
-
-     
+      # 10. CloudFront Cache Invalidation
+      - name: CloudFront Cache Invalidation
+        if: env.CF_ID != ''
+        run: |
+          echo "Invalidating CF Distribution: $CF_ID"
+          aws cloudfront create-invalidation --distribution-id $CF_ID --paths "/*"
