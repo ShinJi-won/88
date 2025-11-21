@@ -33,7 +33,7 @@ jobs:
           fi
 
       # 4. 빌드 (환경별 env 값 자동 주입)
-      - name: Build React App
+      - name: Build React Ap
         run: npm run build
         env:
           REACT_APP_API_URL: ${{ secrets[format('{0}_REACT_APP_API_URL', steps.env.outputs.ENV)] }}
