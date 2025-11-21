@@ -58,4 +58,5 @@ jobs:
       - name: CloudFront Cache Invalidation
         run: |
           CF_ID="${{ secrets[format('{0}_CF_DISTRIBUTION_ID', steps.env.outputs.ENV)] }}"
-          aws cloudfront create-invalidation --distribution-id $CF_ID --paths "/*
+          aws cloudfront create-invalidation --distribution-id $CF_ID --paths "/*"
+
